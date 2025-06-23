@@ -10,25 +10,18 @@ class TeacherDashboard(tk.Frame):
         self.pack(fill="both", expand=True)
         self.configure(bg="#1c1c1c")
         self.selected_question_id = None
-        self.selected_student_id = None
+        self.selected_username = None
         self.quiz_db = "quiz.db"
         self.user_db = "user.db"
 
-        # Apply dark theme styles
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.style.configure("Dark.TFrame", background="#1c1c1c")
         self.style.configure("Dark.TLabel", background="#1c1c1c", foreground="turquoise", font=("Segoe UI", 10))
         self.style.configure("Dark.TButton", background="#1c1c1c", foreground="turquoise", font=("Segoe UI", 10))
         self.style.configure("Custom.TEntry", foreground="turquoise", fieldbackground="#302E2E", background="#232222", font=("Segoe UI", 10))
-        self.style.configure("SectionHeader.TLabel",
-        background="#1c1c1c",
-        foreground="white",
-        font=("Segoe UI", 12, "bold"),
-        padding=5)
-        self.style.map("Dark.TButton",
-                       background=[("active", "#2a2a2a")],
-                       foreground=[("active", "white")])
+        self.style.configure("SectionHeader.TLabel", background="#1c1c1c", foreground="white", font=("Segoe UI", 12, "bold"), padding=5)
+        self.style.map("Dark.TButton", background=[("active", "#2a2a2a")], foreground=[("active", "white")])
 
         self.init_quiz_db()
         self.ensure_marks_column()
@@ -38,8 +31,7 @@ class TeacherDashboard(tk.Frame):
 
     def init_quiz_db(self):
         with sqlite3.connect(self.quiz_db) as conn:
-            c = conn.cursor()
-            c.execute('''
+            conn.execute('''
                 CREATE TABLE IF NOT EXISTS quiz_questions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     question TEXT NOT NULL,
@@ -55,8 +47,7 @@ class TeacherDashboard(tk.Frame):
         with sqlite3.connect(self.user_db) as conn:
             c = conn.cursor()
             c.execute("PRAGMA table_info(user)")
-            columns = [col[1] for col in c.fetchall()]
-            if "marks" not in columns:
+            if "marks" not in [col[1] for col in c.fetchall()]:
                 c.execute("ALTER TABLE user ADD COLUMN marks INTEGER DEFAULT 0")
 
     def hash_password(self, password):
@@ -66,38 +57,17 @@ class TeacherDashboard(tk.Frame):
         main_frame = ttk.Frame(self, padding=10, style="Dark.TFrame")
         main_frame.pack(fill="both", expand=True)
 
-        # Quiz Frame
         quiz_frame = ttk.Frame(main_frame, style="Dark.TFrame", padding=10)
         quiz_frame.pack(side="left", fill="both", expand=True, padx=5)
 
         ttk.Label(quiz_frame, text="📘 Quiz Questions", style="SectionHeader.TLabel").pack(anchor="w", pady=(0, 5))
 
-
         style = ttk.Style()
         style.theme_use("clam")
-
-        # Treeview background, foreground, and row font
-        style.configure("Custom.Treeview",
-            background="#1c1c1c",       # row background
-            foreground="turquoise",     # row text
-            rowheight=25,
-            fieldbackground="#1c1c1c",  # empty space background
-            font=("Segoe UI", 10)
-        )
-
-        # Header styling
-        style.configure("Custom.Treeview.Heading",
-            background="#2a2a2a",       # header background
-            foreground="white",         # header text
-            font=("Segoe UI", 10, "bold")
-        )
-
-        # Selected row style
-        style.map("Custom.Treeview",
-            background=[('selected', '#444444')],
-            foreground=[('selected', 'white')]
-        )
-
+        style.configure("Custom.Treeview", background="#1c1c1c", foreground="turquoise", rowheight=25,
+                        fieldbackground="#1c1c1c", font=("Segoe UI", 10))
+        style.configure("Custom.Treeview.Heading", background="#2a2a2a", foreground="white", font=("Segoe UI", 10, "bold"))
+        style.map("Custom.Treeview", background=[('selected', '#444444')], foreground=[('selected', 'white')])
 
         ttk.Label(quiz_frame, text="Question:", style="Dark.TLabel").pack(anchor="w")
         self.entry_question = ttk.Entry(quiz_frame, width=40, style="Custom.TEntry")
@@ -119,37 +89,33 @@ class TeacherDashboard(tk.Frame):
         ttk.Button(btn_frame_q, text="Edit", width=6, command=self.update_question, style="Dark.TButton").grid(row=0, column=1, padx=2)
         ttk.Button(btn_frame_q, text="Delete", width=6, command=self.delete_question, style="Dark.TButton").grid(row=0, column=2, padx=2)
 
-        self.tree_questions = ttk.Treeview(quiz_frame, columns=("ID", "Question"), show="headings", height=4,style="Custom.Treeview")
+        self.tree_questions = ttk.Treeview(quiz_frame, columns=("ID", "Question"), show="headings", height=4, style="Custom.Treeview")
         self.tree_questions.heading("ID", text="ID")
         self.tree_questions.heading("Question", text="Question")
+        self.tree_questions.column("ID", width=50, anchor="w")
+        self.tree_questions.column("Question", width=250, anchor="w")
         self.tree_questions.pack(pady=5)
-        self.tree_questions.column("ID",width=50,anchor="w")
-        self.tree_questions.column("Question",width=250,anchor="w")
         self.tree_questions.bind("<<TreeviewSelect>>", self.load_selected_question)
 
-        # Student Frame
         student_frame = ttk.Frame(main_frame, style="Dark.TFrame", padding=10)
         student_frame.pack(side="right", fill="both", expand=True, padx=5)
 
         ttk.Label(student_frame, text="👨‍🎓 Student Management", style="SectionHeader.TLabel").pack(anchor="w", pady=(0, 5))
-
 
         self.entry_username = self.add_entry_field(student_frame, "Username:", width=30)
         self.entry_marks = self.add_entry_field(student_frame, "Marks:", width=30)
 
         btn_frame_s = ttk.Frame(student_frame, style="Dark.TFrame")
         btn_frame_s.pack(pady=5)
-        # ttk.Button(btn_frame_s, text="Add", width=6, command=self.add_student, style="Dark.TButton").grid(row=0, column=0, padx=2)
         ttk.Button(btn_frame_s, text="Edit", width=6, command=self.update_student, style="Dark.TButton").grid(row=0, column=1, padx=2)
         ttk.Button(btn_frame_s, text="Delete", width=6, command=self.delete_student, style="Dark.TButton").grid(row=0, column=2, padx=2)
 
-        self.tree_students = ttk.Treeview(student_frame, columns=("ID", "Username", "Marks"), show="headings", height=4,style="Custom.Treeview")
-        for col in self.tree_students["columns"]:
-            self.tree_students.heading(col, text=col)
+        self.tree_students = ttk.Treeview(student_frame, columns=("Username", "Marks"), show="headings", height=4, style="Custom.Treeview")
+        self.tree_students.heading("Username", text="Username")
+        self.tree_students.heading("Marks", text="Marks")
+        self.tree_students.column("Username", width=120, anchor="w")
+        self.tree_students.column("Marks", width=100, anchor="w")
         self.tree_students.pack(pady=5)
-        self.tree_students.column("ID",width=50,anchor="w")
-        self.tree_students.column("Username",width=120,anchor="w")
-        self.tree_students.column("Marks",width=100,anchor="w")
         self.tree_students.bind("<<TreeviewSelect>>", self.load_selected_student)
 
         ttk.Button(student_frame, text="Clear Fields", command=self.clear_student_fields, style="Dark.TButton").pack(pady=5)
@@ -160,7 +126,6 @@ class TeacherDashboard(tk.Frame):
         entry.pack()
         return entry
 
-    # Quiz Logic
     def add_question(self):
         q, a, b, c_, d, correct = self.entry_question.get(), self.entry_a.get(), self.entry_b.get(), self.entry_c.get(), self.entry_d.get(), self.correct_var.get().upper()
         if not all([q, a, b, c_, d, correct]):
@@ -178,7 +143,7 @@ class TeacherDashboard(tk.Frame):
         self.tree_questions.delete(*self.tree_questions.get_children())
         with sqlite3.connect(self.quiz_db) as conn:
             for row in conn.execute("SELECT id, question FROM quiz_questions"):
-                self.tree_questions.insert("", "end", iid=row[0], values=(row[0], row[1]))
+                self.tree_questions.insert("", "end", iid=row[0], values=row)
 
     def load_selected_question(self, event):
         selected = self.tree_questions.selection()
@@ -228,47 +193,25 @@ class TeacherDashboard(tk.Frame):
             e.delete(0, tk.END)
         self.correct_var.set("")
 
-    # Student Management
     def view_students(self):
         self.tree_students.delete(*self.tree_students.get_children())
         with sqlite3.connect(self.user_db) as conn:
-            for row in conn.execute("SELECT rowid, username, marks FROM user WHERE role='Student'"):
-                self.tree_students.insert("", "end", iid=row[0], values=row)
-
-    def add_student(self):
-        u, m = self.entry_username.get(), self.entry_marks.get()
-        if not u:
-            return messagebox.showerror("Error", "Username is required.")
-        try:
-            m = int(m)
-        except ValueError:
-            return messagebox.showerror("Error", "Marks must be number.")
-        try:
-            with sqlite3.connect(self.user_db) as conn:
-                conn.execute("INSERT INTO user (username, password, role, marks) VALUES (?, ?, ?, ?)", 
-                             (u, self.hash_password("default123"), "Student", m))
-            self.view_students()
-            self.clear_student_fields()
-            messagebox.showinfo("Added", "Student added with default password 'default123'.")
-        except sqlite3.IntegrityError:
-            messagebox.showerror("Error", "Username already exists.")
+            for row in conn.execute("SELECT username, marks FROM user WHERE role='Student'"):
+                self.tree_students.insert("", "end", values=row)
 
     def load_selected_student(self, event):
         selected = self.tree_students.selection()
         if selected:
-            self.selected_student_id = selected[0]
-            with sqlite3.connect(self.user_db) as conn:
-                c = conn.cursor()
-                c.execute("SELECT username, marks FROM user WHERE rowid=? AND role='Student'", (self.selected_student_id,))
-                data = c.fetchone()
-                if data:
-                    self.entry_username.delete(0, tk.END)
-                    self.entry_username.insert(0, data[0])
-                    self.entry_marks.delete(0, tk.END)
-                    self.entry_marks.insert(0, data[1])
+            values = self.tree_students.item(selected[0])['values']
+            if values:
+                self.selected_username = values[0]
+                self.entry_username.delete(0, tk.END)
+                self.entry_username.insert(0, values[0])
+                self.entry_marks.delete(0, tk.END)
+                self.entry_marks.insert(0, values[1])
 
     def update_student(self):
-        if not self.selected_student_id:
+        if not self.selected_username:
             return messagebox.showerror("Error", "No student selected.")
         u, m = self.entry_username.get(), self.entry_marks.get()
         try:
@@ -276,23 +219,23 @@ class TeacherDashboard(tk.Frame):
         except ValueError:
             return messagebox.showerror("Error", "Marks must be number.")
         with sqlite3.connect(self.user_db) as conn:
-            conn.execute("UPDATE user SET username=?, marks=? WHERE rowid=? AND role='Student'", 
-                         (u, m, self.selected_student_id))
+            conn.execute("UPDATE user SET username=?, marks=? WHERE username=? AND role='Student'", 
+                         (u, m, self.selected_username))
         self.view_students()
         self.clear_student_fields()
         messagebox.showinfo("Updated", "Student updated.")
 
     def delete_student(self):
-        if not self.selected_student_id:
+        if not self.selected_username:
             return messagebox.showerror("Error", "No student selected.")
         with sqlite3.connect(self.user_db) as conn:
-            conn.execute("DELETE FROM user WHERE rowid=? AND role='Student'", (self.selected_student_id,))
+            conn.execute("DELETE FROM user WHERE username=? AND role='Student'", (self.selected_username,))
         self.view_students()
         self.clear_student_fields()
         messagebox.showinfo("Deleted", "Student deleted.")
 
     def clear_student_fields(self):
-        self.selected_student_id = None
+        self.selected_username = None
         self.entry_username.delete(0, tk.END)
         self.entry_marks.delete(0, tk.END)
 
